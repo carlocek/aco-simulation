@@ -4,8 +4,8 @@ using TMPro;
 
 public class UIController : MonoBehaviour
 {
-    public Slider alphaSlider, betaSlider, evaporationSlider, antsSlider, iterationsSlider;
-    public TextMeshProUGUI alphaText, betaText, evaporationText, antsText, iterationsText;
+    public Slider alphaSlider, betaSlider, evaporationSlider, antsSlider, iterationsSlider, simulationSpeedSlider;
+    public TextMeshProUGUI alphaText, betaText, evaporationText, antsText, iterationsText, simulationSpeedText;
     public Button startButton;
     public Button addNodeButton;
     public Button clearGraphButton;
@@ -19,6 +19,7 @@ public class UIController : MonoBehaviour
         evaporationSlider.onValueChanged.AddListener(val => evaporationText.text = $"evaporation rate: {val:F2}");
         antsSlider.onValueChanged.AddListener(val => antsText.text = $"num ants: {Mathf.RoundToInt(val)}");
         iterationsSlider.onValueChanged.AddListener(val => iterationsText.text = $"num iterations: {Mathf.RoundToInt(val)}");
+        simulationSpeedSlider.onValueChanged.AddListener(val => simulationSpeedText.text = $"simulation speed: {val:F2} frames/sec");
 
         startButton.onClick.AddListener(() =>
         {
@@ -27,6 +28,7 @@ public class UIController : MonoBehaviour
             acoController.evaporation = evaporationSlider.value;
             acoController.numAnts = Mathf.RoundToInt(antsSlider.value);
             acoController.iterations = Mathf.RoundToInt(iterationsSlider.value);
+            acoController.stepDelay = 1f / simulationSpeedSlider.value;
             acoController.StartSimulation();
         });
 
@@ -46,5 +48,6 @@ public class UIController : MonoBehaviour
         evaporationSlider.onValueChanged.Invoke(evaporationSlider.value);
         antsSlider.onValueChanged.Invoke(antsSlider.value);
         iterationsSlider.onValueChanged.Invoke(iterationsSlider.value);
+        simulationSpeedSlider.onValueChanged.Invoke(simulationSpeedSlider.value);
     }
 }

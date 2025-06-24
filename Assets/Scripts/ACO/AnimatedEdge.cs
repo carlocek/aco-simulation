@@ -6,20 +6,18 @@ using System;
 public class AnimatedEdge : MonoBehaviour
 {
     private LineRenderer lr;
-    private float fadeDuration = 1f;
-    private float lifeTime = 0.1f; // time before starting to fade
-
+    
     void Awake()
     {
         lr = GetComponent<LineRenderer>();
     }
 
-    public void AnimateEdge(Vector3 start, Vector3 end, float duration, Boolean fade = true)
+    public void AnimateEdge(Vector3 start, Vector3 end, float drawDuration, float fadeDelay, float fadeDuration, bool fade = true)
     {
-        StartCoroutine(AnimateRoutine(start, end, duration, fade));
+        StartCoroutine(AnimateRoutine(start, end, drawDuration, fadeDelay, fadeDuration, fade));
     }
 
-    private IEnumerator AnimateRoutine(Vector3 start, Vector3 end, float duration, Boolean fade = true)
+    private IEnumerator AnimateRoutine(Vector3 start, Vector3 end, float duration, float fadeDelay, float fadeDuration, bool fade = true)
     {
         lr.SetPosition(0, start);
         lr.SetPosition(1, start);
@@ -34,13 +32,14 @@ public class AnimatedEdge : MonoBehaviour
         }
 
         lr.SetPosition(1, end);
-        if (fade==true)
-            StartCoroutine(FadeOutAfterDelay());
+
+        if (fade)
+            StartCoroutine(FadeOutAfterDelay(fadeDelay, fadeDuration));
     }
 
-    private IEnumerator FadeOutAfterDelay()
+    private IEnumerator FadeOutAfterDelay(float fadeDelay, float fadeDuration)
     {
-        yield return new WaitForSeconds(lifeTime);
+        yield return new WaitForSeconds(fadeDelay);
 
         Color startColor = lr.startColor;
         Color endColor = lr.endColor;

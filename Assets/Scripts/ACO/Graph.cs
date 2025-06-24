@@ -10,17 +10,17 @@ public class Graph : MonoBehaviour
     public float radius = 5f;
     public List<Transform> nodes = new List<Transform>();
     public int NodeCount => nodes.Count;
-    private Dictionary<(int, int), LineRenderer> pheromoneLines = new();
-    public Material pheromoneMaterial;
 
-    private bool placingNodes = false; // modalità attiva/inattiva
+    public Material pheromoneMaterial;
+    private Dictionary<(int, int), LineRenderer> pheromoneLines = new();
+    private bool placingNodes = false;
+    private ACOController acoController;
 
     void Start()
     {
         if (nodePrefab == null)
         {
             Debug.LogError("🚨 Graph: nodePrefab non assegnato.");
-            return;
         }
     }
 
@@ -28,13 +28,12 @@ public class Graph : MonoBehaviour
     {
         if (placingNodes && Input.GetMouseButtonDown(0))
         {
-            // check if the mouse is over a UI element
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
                 return;
-            Vector3 mousePos = Input.mousePosition;
-            mousePos.z = 10f; // distance from camera
-            Vector3 worldPos = Camera.main.ScreenToWorldPoint(mousePos);
 
+            Vector3 mousePos = Input.mousePosition;
+            mousePos.z = 10f;
+            Vector3 worldPos = Camera.main.ScreenToWorldPoint(mousePos);
             AddNode(worldPos);
         }
     }
@@ -47,10 +46,11 @@ public class Graph : MonoBehaviour
     public void ClearGraph()
     {
         foreach (Transform node in nodes)
-        {
             Destroy(node.gameObject);
-        }
         nodes.Clear();
+        foreach (LineRenderer line in pheromoneLines.Values)
+            Destroy(line.gameObject);
+        pheromoneLines.Clear();
     }
 
     public void AddNode(Vector3 position)
@@ -71,13 +71,26 @@ public class Graph : MonoBehaviour
 
     public void DrawEdge(List<int> tour)
     {
-        if (tour.Count < 2)
-        {
-            return;
-        }
-        int from = tour[tour.Count - 2];
-        int to = tour[tour.Count - 1];
+        if (tour.Count < 2) return;
 
+        int from = tour[^2];
+        int to = tour[^1];
+
+        CreateAnimatedEdge(from, to);
+    }
+
+    public void DrawTour(List<int> tour)
+    {
+        for (int i = 0; i < tour.Count - 1; i++)
+        {
+            int from = tour[i];
+            int to = tour[i + 1];
+            CreateAnimatedEdge(from, to, false);
+        }
+    }
+
+    private void CreateAnimatedEdge(int from, int to, bool fade = true)
+    {
         GameObject lineObj = new GameObject("Line");
         lineObj.transform.parent = transform;
 
@@ -88,56 +101,44 @@ public class Graph : MonoBehaviour
         lr.positionCount = 2;
         lr.sortingOrder = 1;
 
-        AnimatedEdge animatedEdge = lineObj.AddComponent<AnimatedEdge>();
-        animatedEdge.AnimateEdge(nodes[from].position, nodes[to].position, 0.5f); // durata animazione: 0.5s
+        var animatedEdge = lineObj.AddComponent<AnimatedEdge>();
+        float delay = acoController != null ? acoController.stepDelay : 0.5f;
+        float drawDuration = Mathf.Min(0.5f * delay, 0.1f);
+        float fadeDelay = Mathf.Min(0.5f * delay, 0.05f);
+        float fadeDuration = Mathf.Min(1.5f * delay, 0.2f);
+        animatedEdge.AnimateEdge(
+            nodes[from].position,
+            nodes[to].position,
+            drawDuration,
+            fadeDelay,
+            fadeDuration,
+            fade
+        );
     }
 
-    public void DrawTour(List<int> tour)
-    {
-
-        for (int i = 0; i < tour.Count - 1; i++)
-        {
-            int from = tour[i];
-            int to = tour[i + 1];
-
-            GameObject lineObj = new GameObject("Line");
-            lineObj.transform.parent = transform;
-
-            LineRenderer lr = lineObj.AddComponent<LineRenderer>();
-            lr.material = new Material(Shader.Find("Sprites/Default"));
-            lr.startColor = lr.endColor = Color.red;
-            lr.startWidth = lr.endWidth = 0.1f;
-            lr.positionCount = 2;
-            lr.sortingOrder = 1;
-
-            AnimatedEdge animatedEdge = lineObj.AddComponent<AnimatedEdge>();
-            animatedEdge.AnimateEdge(nodes[from].position, nodes[to].position, 0.5f, false); // durata animazione: 0.5s
-        }
-    }
-    
     public void UpdatePheromoneVisual(int from, int to, float amount, float maxAmount)
     {
         var key = (Mathf.Min(from, to), Mathf.Max(from, to));
 
-        if (!pheromoneLines.ContainsKey(key))
+        if (!pheromoneLines.TryGetValue(key, out var line))
         {
             GameObject lineObj = new GameObject($"Pheromone {from}-{to}");
             lineObj.transform.parent = transform;
 
-            LineRenderer lr = lineObj.AddComponent<LineRenderer>();
-            lr.material = pheromoneMaterial ?? new Material(Shader.Find("Sprites/Default"));
-            lr.positionCount = 2;
-            lr.SetPosition(0, nodes[from].position);
-            lr.SetPosition(1, nodes[to].position);
-            lr.sortingOrder = 0;
-            pheromoneLines[key] = lr;
+            line = lineObj.AddComponent<LineRenderer>();
+            line.material = pheromoneMaterial ?? new Material(Shader.Find("Sprites/Default"));
+            line.positionCount = 2;
+            line.SetPosition(0, nodes[from].position);
+            line.SetPosition(1, nodes[to].position);
+            line.sortingOrder = 0;
+
+            pheromoneLines[key] = line;
         }
 
         float normalized = Mathf.Clamp01(amount / maxAmount);
         float thickness = Mathf.Lerp(0.01f, 0.15f, normalized);
         Color color = Color.Lerp(Color.clear, Color.cyan, normalized);
 
-        var line = pheromoneLines[key];
         line.startWidth = line.endWidth = thickness;
         line.startColor = line.endColor = color;
     }
