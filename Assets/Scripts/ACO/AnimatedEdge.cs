@@ -6,7 +6,8 @@ using System;
 public class AnimatedEdge : MonoBehaviour
 {
     private LineRenderer lr;
-    
+    public GameObject antSpritePrefab;
+
     void Awake()
     {
         lr = GetComponent<LineRenderer>();
@@ -22,17 +23,30 @@ public class AnimatedEdge : MonoBehaviour
         lr.SetPosition(0, start);
         lr.SetPosition(1, start);
 
+        GameObject antVisual = null;
+        if (antSpritePrefab != null)
+            antVisual = Instantiate(antSpritePrefab, start, Quaternion.identity, transform);
+
         float elapsed = 0;
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            float t = elapsed / duration;
-            lr.SetPosition(1, Vector3.Lerp(start, end, t));
+            float t = Mathf.Clamp01(elapsed / duration);
+            Vector3 pos = Vector3.Lerp(start, end, t);
+            lr.SetPosition(1, pos);
+
+            if (antVisual != null)
+            {
+                antVisual.transform.position = pos;
+                antVisual.transform.right = (end - start).normalized; // direzione del movimento
+            }
+
             yield return null;
         }
 
         lr.SetPosition(1, end);
-
+        if (antVisual != null)
+            Destroy(antVisual);
         if (fade)
             StartCoroutine(FadeOutAfterDelay(fadeDelay, fadeDuration));
     }

@@ -6,6 +6,7 @@ using UnityEngine.EventSystems;
 public class Graph : MonoBehaviour
 {
     public GameObject nodePrefab;
+    public GameObject antPrefab;
     public int nodeCount = 5;
     public float radius = 5f;
     public List<Transform> nodes = new List<Transform>();
@@ -102,10 +103,11 @@ public class Graph : MonoBehaviour
         lr.sortingOrder = 1;
 
         var animatedEdge = lineObj.AddComponent<AnimatedEdge>();
+        animatedEdge.antSpritePrefab = antPrefab;
         float delay = acoController != null ? acoController.stepDelay : 0.5f;
-        float drawDuration = Mathf.Min(0.5f * delay, 0.1f);
-        float fadeDelay = Mathf.Min(0.5f * delay, 0.05f);
-        float fadeDuration = Mathf.Min(1.5f * delay, 0.2f);
+        float drawDuration = delay * 0.8f;
+        float fadeDelay = delay * 0.2f;
+        float fadeDuration = Mathf.Max(0.5f, delay * 1.2f);
         animatedEdge.AnimateEdge(
             nodes[from].position,
             nodes[to].position,
