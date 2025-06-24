@@ -38,7 +38,7 @@ public class AnimatedEdge : MonoBehaviour
             if (antVisual != null)
             {
                 antVisual.transform.position = pos;
-                antVisual.transform.right = (end - start).normalized; // direzione del movimento
+                antVisual.transform.up = (end - start).normalized; // direzione del movimento
             }
 
             yield return null;
