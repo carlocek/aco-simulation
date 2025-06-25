@@ -128,8 +128,22 @@ public class Graph : MonoBehaviour
             lineObj.transform.parent = transform;
 
             line = lineObj.AddComponent<LineRenderer>();
-            line.material = pheromoneMaterial ?? new Material(Shader.Find("Sprites/Default"));
+            
+            if (pheromoneMaterial != null)
+            {
+                line.material = pheromoneMaterial;
+            }
+            else
+            {
+                Material fallbackMaterial = new Material(Shader.Find("Sprites/Default"));
+                fallbackMaterial.color = Color.white;
+                line.material = fallbackMaterial;
+            }
+
+            // LineRenderer setup
             line.positionCount = 2;
+            line.useWorldSpace = true;
+            line.numCapVertices = 4;  // Opzionale: migliora l'estetica dei bordi
             line.SetPosition(0, nodes[from].position);
             line.SetPosition(1, nodes[to].position);
             line.sortingOrder = 0;
@@ -139,9 +153,9 @@ public class Graph : MonoBehaviour
 
         float normalized = Mathf.Clamp01(amount / maxAmount);
         float thickness = Mathf.Lerp(0.01f, 0.15f, normalized);
-        Color color = Color.Lerp(Color.clear, Color.cyan, normalized);
-
+        Color color = Color.Lerp(new Color(0, 1, 0, 0f), new Color(0, 1, 0, 1f), normalized);  // green with alpha
         line.startWidth = line.endWidth = thickness;
         line.startColor = line.endColor = color;
     }
+
 }
