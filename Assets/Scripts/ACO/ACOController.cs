@@ -30,14 +30,20 @@ public class ACOController : MonoBehaviour
         {
             graph = GetComponent<Graph>();
             if (graph == null)
-                Log("ACOController: Nessun componente Graph trovato sullo stesso GameObject.");
+                Log("ACOController: No graph component found on the same GameObject.");
         }
+        graph.SetACOController(this);
     }
 
     public void ToggleSimulation()
     {
         if (!simulationRunning)
         {
+            if (graph.nodes.Count <= 2)
+            {
+                Log("Not enough nodes to start the simulation.");
+                return;
+            }
             simulationRunning = true;
             simulationPaused = false;
             if (simulationCoroutine == null)
@@ -78,7 +84,11 @@ public class ACOController : MonoBehaviour
             for (int i = 0; i < numAnts; i++)
             {
                 while (simulationPaused)
+                {
+                    if (graph.nodes.Count == 0)
+                        StopSimulation();
                     yield return null;
+                }
                 Ant ant = new Ant(graph, pheromones, alpha, beta);
                 yield return StartCoroutine(ant.TraverseStepByStep(graph.DrawEdge, stepDelay));
                 ants.Add(ant);
@@ -112,13 +122,17 @@ public class ACOController : MonoBehaviour
             }
 
             while (simulationPaused)
+            {
+                if (graph.nodes.Count == 0)
+                    StopSimulation();
                 yield return null;
+            }
         }
 
         if (bestTour != null)
             graph.DrawTour(bestTour);
 
-        Log($"Simulazione completed... length of best tour: {bestLength:F2}");
+        Log($"Simulation completed,  length of best tour: {bestLength:F2}");
         StopSimulation();
     }
 }

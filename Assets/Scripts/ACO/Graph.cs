@@ -18,11 +18,16 @@ public class Graph : MonoBehaviour
     private bool placingNodes = false;
     private ACOController acoController;
 
+    public void SetACOController(ACOController controller)
+    {
+        acoController = controller;
+    }
+
     void Start()
     {
         if (nodePrefab == null)
         {
-            Debug.LogError("🚨 Graph: nodePrefab non assegnato.");
+            Debug.LogError("Graph: nodePrefab not assigned.");
         }
     }
 
@@ -47,8 +52,13 @@ public class Graph : MonoBehaviour
 
     public void ClearGraph()
     {
+        if (!acoController.simulationPaused)
+        {
+            acoController.Log("Pause simulation before deleting the graph.");
+            return;
+        }
         foreach (Transform node in nodes)
-            Destroy(node.gameObject);
+                Destroy(node.gameObject);
         nodes.Clear();
         foreach (LineRenderer line in pheromoneLines.Values)
             Destroy(line.gameObject);
