@@ -12,8 +12,17 @@ public class ACOController : MonoBehaviour
     public float evaporation = 0.5f;
     public float pheromoneDeposit = 100f;
     public float stepDelay = 0.5f;
-
+    public bool simulationRunning = false;
+    public bool simulationPaused = false;
+    public event System.Action<string> OnLog;
     private PheromoneMatrix pheromones;
+    private Coroutine simulationCoroutine;
+
+    public void Log(string msg)
+    {
+        Debug.Log(msg);
+        OnLog?.Invoke(msg); // notifica iscritti (es. UI)
+    }
 
     public void Awake()
     {
@@ -21,24 +30,40 @@ public class ACOController : MonoBehaviour
         {
             graph = GetComponent<Graph>();
             if (graph == null)
-                Debug.LogError("🚨 ACOController: Nessun componente Graph trovato sullo stesso GameObject.");
+                Log("ACOController: Nessun componente Graph trovato sullo stesso GameObject.");
         }
     }
 
-    public void StartSimulation()
+    public void ToggleSimulation()
     {
-        if (graph.NodeCount < 2)
+        if (!simulationRunning)
         {
-            Debug.LogError("🚨 ACOController: Numero di nodi insufficiente per simulazione.");
-            return;
+            simulationRunning = true;
+            simulationPaused = false;
+            if (simulationCoroutine == null)
+                simulationCoroutine = StartCoroutine(RunACO());
         }
-        StopAllCoroutines();
-        StartCoroutine(RunACO());
+        else
+        {
+            simulationPaused = !simulationPaused;
+        }
     }
+
+    public void StopSimulation()
+    {
+        simulationRunning = false;
+        simulationPaused = false;
+        if (simulationCoroutine != null)
+        {
+            StopCoroutine(simulationCoroutine);
+            simulationCoroutine = null;
+        }
+    }
+
 
     IEnumerator RunACO()
     {
-        Debug.Log("▶️ Simulation started...");
+        Log("Simulation started...");
 
         pheromones = new PheromoneMatrix(graph.NodeCount);
         List<int> bestTour = null;
@@ -46,18 +71,20 @@ public class ACOController : MonoBehaviour
 
         for (int it = 0; it < iterations; it++)
         {
-            Debug.Log($"🔁 Iteration {it + 1}/{iterations}");
+            Log($"Iteration {it + 1}/{iterations}");
 
             List<Ant> ants = new List<Ant>();
 
             for (int i = 0; i < numAnts; i++)
             {
+                while (simulationPaused)
+                    yield return null;
                 Ant ant = new Ant(graph, pheromones, alpha, beta);
                 yield return StartCoroutine(ant.TraverseStepByStep(graph.DrawEdge, stepDelay));
                 ants.Add(ant);
 
                 float length = ant.GetTourLength();
-                Debug.Log($"🐜 Ant {i}: tour length = {length:F2}");
+                Log($"Ant {i}: tour length = {length:F2}");
 
                 if (length < bestLength)
                 {
@@ -83,11 +110,15 @@ public class ACOController : MonoBehaviour
                     graph.UpdatePheromoneVisual(i, j, p, maxPheromone);
                 }
             }
+
+            while (simulationPaused)
+                yield return null;
         }
 
         if (bestTour != null)
             graph.DrawTour(bestTour);
 
-        Debug.Log($"✅ Simulazione completed... length of best tour: {bestLength:F2}");
+        Log($"Simulazione completed... length of best tour: {bestLength:F2}");
+        StopSimulation();
     }
 }

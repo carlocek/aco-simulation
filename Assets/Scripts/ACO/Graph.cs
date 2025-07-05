@@ -14,6 +14,7 @@ public class Graph : MonoBehaviour
 
     public Material pheromoneMaterial;
     private Dictionary<(int, int), LineRenderer> pheromoneLines = new();
+    private List<LineRenderer> bestTourLines = new();
     private bool placingNodes = false;
     private ACOController acoController;
 
@@ -52,6 +53,9 @@ public class Graph : MonoBehaviour
         foreach (LineRenderer line in pheromoneLines.Values)
             Destroy(line.gameObject);
         pheromoneLines.Clear();
+        foreach (LineRenderer line in bestTourLines)
+            Destroy(line.gameObject);
+        bestTourLines.Clear();
     }
 
     public void AddNode(Vector3 position)
@@ -116,6 +120,8 @@ public class Graph : MonoBehaviour
             fadeDuration,
             fade
         );
+        if (!fade)
+            bestTourLines.Add(lr);
     }
 
     public void UpdatePheromoneVisual(int from, int to, float amount, float maxAmount)
